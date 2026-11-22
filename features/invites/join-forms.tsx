@@ -56,7 +56,7 @@ export function JoinTripForm({
       <input type="hidden" name="claimMemberId" value={claim} />
 
       {placeholders.length > 0 ? (
-        <fieldset className="space-y-2">
+        <fieldset className="min-w-0 space-y-2">
           <legend className="mb-2 text-sm font-medium">{t("join.whoAreYou")}</legend>
           <div role="radiogroup" className="grid grid-cols-2 gap-2">
             {[...placeholders, { id: "new", displayName: t("join.newPerson") }].map((p) => (

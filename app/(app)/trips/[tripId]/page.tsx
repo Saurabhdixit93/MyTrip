@@ -4,9 +4,12 @@ import Link from "next/link";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { ToastOnMount } from "@/components/toast-on-mount";
 import { Button } from "@/components/ui/button";
+import { ExpenseListItem } from "@/features/expenses/expense-list-item";
+import { DuesCard, TripStats } from "@/features/settle/dues-card";
 import { TripHero } from "@/features/trips/trip-hero";
 import { t } from "@/lib/i18n";
 import { can } from "@/lib/rbac";
+import { getTripSummary, listExpenses } from "@/server/queries/expenses";
 import { requireTripPage } from "@/server/queries/trips";
 
 export async function generateMetadata({ params }: PageProps<"/trips/[tripId]">): Promise<Metadata> {
@@ -19,6 +22,7 @@ export default async function TripOverviewPage({ params, searchParams }: PagePro
   const { tripId } = await params;
   const sp = await searchParams;
   const { trip, me, members } = await requireTripPage(tripId);
+  const [summary, recent] = await Promise.all([getTripSummary(trip.id), listExpenses(trip.id, 5)]);
 
   return (
     <>
@@ -45,6 +49,27 @@ export default async function TripOverviewPage({ params, searchParams }: PagePro
               <UserPlus /> {t("members.invite")}
             </Link>
           </Button>
+        ) : null}
+        <DuesCard tripId={trip.id} summary={summary} meId={me.id} isPayCoach={trip.settlementMode === "PAY_COACH"} />
+        <TripStats summary={summary} meId={me.id} budgetPaise={trip.budgetPaise} memberCount={members.length} />
+        {recent.rows.length ? (
+          <section aria-labelledby="recent-heading" className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 id="recent-heading" className="text-lg font-bold">
+                {t("expenses.recent")}
+              </h2>
+              <Link href={`/trips/${tripId}/expenses`} className="text-primary text-sm font-semibold">
+                {t("expenses.viewAll")}
+              </Link>
+            </div>
+            <ul className="bg-card divide-y overflow-hidden rounded-3xl border">
+              {recent.rows.map((e) => (
+                <li key={e.id}>
+                  <ExpenseListItem expense={e} meId={me.id} names={summary.names} tripId={trip.id} />
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
       </PageBody>
     </>

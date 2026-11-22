@@ -68,7 +68,7 @@ export function TripForm({ action, defaults, submitLabel }: { action: TripAction
         <Textarea {...fieldA11y("description", errors.description)} defaultValue={defaults?.description} maxLength={500} rows={3} placeholder={t("trips.descriptionPlaceholder")} />
       </Field>
 
-      <fieldset className="space-y-3">
+      <fieldset className="min-w-0 space-y-3">
         <legend className="text-sm font-medium">{t("trips.settlementMode")}</legend>
         <RadioGroup name="settlementMode" defaultValue={defaults?.settlementMode ?? "PAY_COACH"} className="gap-2">
           {(

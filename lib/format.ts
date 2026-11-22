@@ -26,3 +26,8 @@ export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "")).toUpperCase() || "?";
 }
+
+/** Today's date (yyyy-mm-dd) in India, for default form values. */
+export function todayInIndia(): string {
+  return new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+}
