@@ -60,6 +60,7 @@
     "esbuild": "0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "jsqr": "^1.4.0",
     "prisma": "7.10.1",
     "serwist": "^9.5.15",
     "sharp": "^0.35.5",

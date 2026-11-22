@@ -1,9 +1,9 @@
 "use client";
 
-import { Copy, QrCode as QrIcon, RefreshCw, Share2 } from "lucide-react";
+import { Copy, Download, QrCode as QrIcon, RefreshCw, Share2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { QrCode } from "@/components/qr-code";
+import { downloadBrandedQr, QrCode } from "@/components/qr-code";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -102,7 +102,11 @@ export function InvitePanel({
             <DialogTitle>{t("members.qrTitle", { trip: tripName })}</DialogTitle>
             <DialogDescription>{code}</DialogDescription>
           </DialogHeader>
-          <QrCode value={inviteUrl} label={t("members.qrTitle", { trip: tripName })} />
+          <QrCode value={inviteUrl} label={t("members.qrTitle", { trip: tripName })} branded className="shadow-sm ring-1 ring-black/5" />
+          <p className="text-muted-foreground text-center text-xs">{t("members.qrHint")}</p>
+          <Button variant="outline" className="w-full" onClick={() => void downloadBrandedQr(inviteUrl, `mytrip-invite-${code}.png`)} data-testid="download-qr">
+            <Download /> {t("members.downloadQr")}
+          </Button>
         </DialogContent>
       </Dialog>
     </Card>

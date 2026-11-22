@@ -216,6 +216,8 @@ export const en = {
     shareNative: "Share…",
     showQr: "Show QR",
     qrTitle: "Scan to join {trip}",
+    qrHint: "Scan with any phone camera to join.",
+    downloadQr: "Download QR",
     regenerate: "Reset link & code",
     regenerateBody: "Old links and codes stop working immediately.",
     disableInvites: "Turn off invites",
