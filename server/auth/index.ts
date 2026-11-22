@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { z } from "zod";
-import { env } from "@/lib/env";
+import { devFlags, env } from "@/lib/env";
 import { db } from "@/server/db";
 import { authAdapter } from "./adapter";
 import { sendMagicLink, smtpServer } from "./email";
@@ -20,7 +20,7 @@ declare module "next-auth" {
 export const authFeatures = {
   google: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
   email: Boolean(env.SMTP_HOST) || env.NODE_ENV !== "production",
-  devLogin: env.AUTH_DEV_LOGIN,
+  devLogin: devFlags.devLogin,
 };
 
 const providers: Provider[] = [

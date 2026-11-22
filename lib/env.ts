@@ -46,11 +46,19 @@ export const env = createEnv({
   emptyStringAsUndefined: true,
 });
 
-if (env.AUTH_DEV_LOGIN && env.VERCEL_ENV === "production") {
-  throw new Error("AUTH_DEV_LOGIN must not be enabled on a production deployment.");
-}
-if (env.IMAGE_IMPORT_ALLOW_PRIVATE && env.VERCEL_ENV === "production") {
-  throw new Error("IMAGE_IMPORT_ALLOW_PRIVATE must not be enabled on a production deployment.");
+/** True on the live Vercel production deployment (not previews, local builds or CI). */
+export const isProductionDeployment = env.VERCEL_ENV === "production";
+
+/**
+ * Dev/test-only switches. On a production deployment they are forced OFF (with a warning)
+ * instead of crashing the build, so copying a local .env to Vercel can't open a hole.
+ */
+export const devFlags = {
+  devLogin: env.AUTH_DEV_LOGIN && !isProductionDeployment,
+  imageImportAllowPrivate: env.IMAGE_IMPORT_ALLOW_PRIVATE && !isProductionDeployment,
+};
+if (isProductionDeployment && (env.AUTH_DEV_LOGIN || env.IMAGE_IMPORT_ALLOW_PRIVATE)) {
+  console.warn("[env] AUTH_DEV_LOGIN / IMAGE_IMPORT_ALLOW_PRIVATE are ignored on production deployments. Remove them from your Vercel env.");
 }
 if (env.STORAGE_DRIVER === "s3" && !(env.S3_BUCKET && env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && env.AWS_ENDPOINT_URL_S3)) {
   throw new Error("STORAGE_DRIVER=s3 requires AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and S3_BUCKET.");

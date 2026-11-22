@@ -2,7 +2,7 @@ import "server-only";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { isPrivateAddress } from "@/lib/net/ip";
-import { env } from "@/lib/env";
+import { devFlags } from "@/lib/env";
 import { AppError } from "../errors";
 import { MAX_UPLOAD_BYTES } from "./uploads";
 
@@ -12,7 +12,7 @@ const TIMEOUT_MS = 10_000;
 const fail = (message: string) => new AppError("VALIDATION", message, { coverUrl: [message] });
 
 async function assertPublicUrl(url: URL) {
-  const allowPrivate = env.IMAGE_IMPORT_ALLOW_PRIVATE;
+  const allowPrivate = devFlags.imageImportAllowPrivate;
   if (url.protocol !== "https:" && !(allowPrivate && url.protocol === "http:")) throw fail("Use an https:// image link.");
   if (url.username || url.password) throw fail("Links with passwords aren't allowed.");
   if (allowPrivate) return;
