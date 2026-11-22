@@ -1,46 +1,33 @@
-import { CalendarDays, Lock, MapPin } from "lucide-react";
-import { MemberAvatar } from "@/components/member-avatar";
-import { Badge } from "@/components/ui/badge";
+import { formatShortDate, todayInIndia } from "@/lib/format";
+import { membersLabel, t } from "@/lib/i18n";
+import { tripPhase } from "@/lib/trip-phase";
 import type { TripContext } from "@/server/queries/trips";
 import { fileUrl } from "@/server/storage/uploads";
-import { formatShortDate } from "@/lib/format";
-import { membersLabel, t } from "@/lib/i18n";
-import { TripCover } from "./trip-cover";
+import { coverGradient } from "./trip-cover";
+import { TripHeroCard } from "./trip-hero-card";
+
+function phaseLabel(phase: ReturnType<typeof tripPhase>): string | null {
+  if (!phase) return null;
+  if (phase.kind === "upcoming") return phase.days === 1 ? t("trips.phaseTomorrow") : t("trips.phaseUpcoming", { days: phase.days });
+  if (phase.kind === "ongoing") return t("trips.phaseOngoing", { day: phase.day, total: phase.total });
+  return t("trips.phaseEnded");
+}
 
 export function TripHero({ trip, members }: Pick<TripContext, "trip" | "members">) {
-  const shown = members.slice(0, 5);
+  const phase = tripPhase(trip.startDate, trip.endDate, todayInIndia());
+  const dateLabel = trip.startDate ? `${formatShortDate(trip.startDate)}${trip.endDate ? ` – ${formatShortDate(trip.endDate)}` : ""}` : null;
   return (
-    <TripCover tripId={trip.id} coverUrl={fileUrl(trip.coverKey)} className="rounded-3xl text-white" eager>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-      <div className="relative flex min-h-44 flex-col justify-end gap-2 p-5">
-        {trip.status !== "ACTIVE" ? (
-          <Badge variant="secondary" className="w-fit">
-            <Lock /> {t(`trips.status.${trip.status}`)}
-          </Badge>
-        ) : null}
-        <h2 className="text-2xl font-extrabold drop-shadow">{trip.name}</h2>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/90">
-          {trip.destination ? (
-            <span className="flex items-center gap-1.5">
-              <MapPin className="size-4" aria-hidden /> {trip.destination}
-            </span>
-          ) : null}
-          {trip.startDate ? (
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="size-4" aria-hidden /> {formatShortDate(trip.startDate)}
-              {trip.endDate ? ` – ${formatShortDate(trip.endDate)}` : null}
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <div className="flex -space-x-2 rtl:space-x-reverse">
-            {shown.map((m) => (
-              <MemberAvatar key={m.id} id={m.id} name={m.displayName} image={m.user?.image} className="size-8 ring-2 ring-black/20" />
-            ))}
-          </div>
-          <span className="text-sm text-white/90">{membersLabel(members.length)}</span>
-        </div>
-      </div>
-    </TripCover>
+    <TripHeroCard
+      name={trip.name}
+      coverUrl={fileUrl(trip.coverKey)}
+      gradient={coverGradient(trip.id) ?? ""}
+      destination={trip.destination}
+      dateLabel={dateLabel}
+      phaseLabel={phaseLabel(phase)}
+      phaseLive={phase?.kind === "ongoing"}
+      statusLabel={trip.status !== "ACTIVE" ? t(`trips.status.${trip.status}`) : null}
+      members={members.map((m) => ({ id: m.id, name: m.displayName, image: m.user?.image ?? null }))}
+      membersLabel={membersLabel(members.length)}
+    />
   );
 }

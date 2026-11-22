@@ -9,7 +9,7 @@ const GRADIENTS = [
   "from-violet-500 to-purple-800",
 ];
 
-function pick(seed: string) {
+export function coverGradient(seed: string) {
   let h = 0;
   for (const ch of seed) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
   return GRADIENTS[h % GRADIENTS.length];
@@ -18,7 +18,7 @@ function pick(seed: string) {
 /** Trip cover photo (private, served via /api/files) or a deterministic brand gradient. */
 export function TripCover({ tripId, coverUrl, className, children, eager }: { tripId: string; coverUrl: string | null; className?: string; children?: React.ReactNode; eager?: boolean }) {
   return (
-    <div className={cn("relative overflow-hidden bg-gradient-to-br", pick(tripId), className)}>
+    <div className={cn("relative overflow-hidden bg-gradient-to-br", coverGradient(tripId), className)}>
       {coverUrl ? (
         // Private images can't go through the next/image optimizer (it has no session cookie).
         // eslint-disable-next-line @next/next/no-img-element
