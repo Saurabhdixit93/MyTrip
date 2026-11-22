@@ -1,0 +1,318 @@
+// MyTrip database schema.
+// Money is always stored as integer paise (minor units). Never floats.
+// Soft deletes use `deletedAt`; queries must filter `deletedAt: null`.
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Auth.js ─────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  phone         String?
+  /// Guest users joined with only a name (+ optional phone) and can upgrade later.
+  isGuest       Boolean   @default(false)
+  locale        String    @default("en")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  accounts     Account[]
+  sessions     Session[]
+  memberships  TripMember[]
+  tripsCreated Trip[]       @relation("TripCreatedBy")
+  auditLogs    AuditLog[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ───────────────────────────── Trips ─────────────────────────────
+
+enum SettlementMode {
+  PAY_COACH
+  P2P_MINIMIZED
+}
+
+enum TripStatus {
+  ACTIVE
+  LOCKED
+  ARCHIVED
+}
+
+model Trip {
+  id             String         @id @default(cuid())
+  name           String
+  description    String?
+  destination    String?
+  startDate      DateTime?      @db.Date
+  endDate        DateTime?      @db.Date
+  /// ISO 4217. MVP is INR-only; multi-currency adds per-expense locked rates later.
+  currency       String         @default("INR")
+  budgetPaise    Int?
+  coverKey       String?
+  /// Short human-friendly join code (e.g. "K7Q2XM").
+  inviteCode     String         @unique
+  /// Long unguessable token used in invite links / QR.
+  inviteToken    String         @unique
+  inviteEnabled  Boolean        @default(true)
+  settlementMode SettlementMode @default(PAY_COACH)
+  status         TripStatus     @default(ACTIVE)
+  /// Coach payout details (UPI VPA + optional uploaded QR image).
+  upiVpa         String?
+  upiPayeeName   String?
+  upiQrKey       String?
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  createdBy User         @relation("TripCreatedBy", fields: [createdById], references: [id])
+  members   TripMember[]
+  expenses  Expense[]
+  payments  Payment[]
+  auditLogs AuditLog[]
+
+  @@index([createdById])
+  @@index([deletedAt])
+}
+
+enum TripRole {
+  COACH
+  CO_COACH
+  MEMBER
+  VIEWER
+}
+
+model TripMember {
+  id          String    @id @default(cuid())
+  tripId      String
+  /// Null = placeholder member added by the Coach; can be claimed later.
+  userId      String?
+  displayName String
+  phone       String?
+  role        TripRole  @default(MEMBER)
+  /// Member's own UPI ID, used to receive money in peer-to-peer mode.
+  upiVpa      String?
+  claimedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  trip             Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  expensesCreated  Expense[]      @relation("ExpenseCreatedBy")
+  payerOf          ExpensePayer[]
+  splits           ExpenseSplit[]
+  paymentsSent     Payment[]      @relation("PaymentFrom")
+  paymentsReceived Payment[]      @relation("PaymentTo")
+  paymentsReviewed Payment[]      @relation("PaymentReviewer")
+  auditLogs        AuditLog[]
+
+  @@unique([tripId, userId])
+  @@index([userId])
+  @@index([tripId, deletedAt])
+}
+
+// ───────────────────────────── Expenses ─────────────────────────────
+
+enum ExpenseCategory {
+  FOOD
+  TRAVEL
+  STAY
+  ACTIVITIES
+  SHOPPING
+  FUEL
+  TICKETS
+  OTHER
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+}
+
+model Expense {
+  id                String          @id @default(cuid())
+  tripId            String
+  title             String
+  amountPaise       Int
+  category          ExpenseCategory @default(OTHER)
+  spentAt           DateTime        @db.Date
+  notes             String?
+  splitType         SplitType       @default(EQUAL)
+  createdByMemberId String
+  /// Optimistic-concurrency version; bumped on every edit (offline sync uses it later).
+  version           Int             @default(1)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+
+  trip        Trip                @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  createdBy   TripMember          @relation("ExpenseCreatedBy", fields: [createdByMemberId], references: [id])
+  payers      ExpensePayer[]
+  splits      ExpenseSplit[]
+  attachments ExpenseAttachment[]
+
+  @@index([tripId, deletedAt, spentAt])
+}
+
+model ExpensePayer {
+  expenseId   String
+  memberId    String
+  amountPaise Int
+
+  expense Expense    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member  TripMember @relation(fields: [memberId], references: [id])
+
+  @@id([expenseId, memberId])
+  @@index([memberId])
+}
+
+model ExpenseSplit {
+  expenseId   String
+  memberId    String
+  /// Resolved share in paise. Sum over an expense always equals Expense.amountPaise.
+  amountPaise Int
+  /// Raw input: basis points (PERCENTAGE), share count (SHARES), paise (EXACT), 1 (EQUAL).
+  weight      Int
+
+  expense Expense    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  member  TripMember @relation(fields: [memberId], references: [id])
+
+  @@id([expenseId, memberId])
+  @@index([memberId])
+}
+
+model ExpenseAttachment {
+  id        String   @id @default(cuid())
+  expenseId String
+  fileKey   String
+  mimeType  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+}
+
+// ───────────────────────────── Payments ─────────────────────────────
+
+enum PaymentStatus {
+  PENDING
+  PAID_AWAITING_APPROVAL
+  VERIFIED
+  REJECTED
+}
+
+enum PaymentMethod {
+  UPI
+  CASH
+  OTHER
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  tripId             String
+  fromMemberId       String
+  toMemberId         String
+  amountPaise        Int
+  method             PaymentMethod @default(UPI)
+  status             PaymentStatus @default(PENDING)
+  /// UPI transaction reference (12-digit UTR), optional.
+  utr                String?
+  proofKey           String?
+  note               String?
+  /// Client-generated key so retries never create duplicate payments.
+  idempotencyKey     String        @unique
+  submittedAt        DateTime?
+  reviewedAt         DateTime?
+  reviewedByMemberId String?
+  rejectionReason    String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  trip       Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  from       TripMember  @relation("PaymentFrom", fields: [fromMemberId], references: [id])
+  to         TripMember  @relation("PaymentTo", fields: [toMemberId], references: [id])
+  reviewedBy TripMember? @relation("PaymentReviewer", fields: [reviewedByMemberId], references: [id])
+
+  @@index([tripId, status])
+  @@index([fromMemberId])
+  @@index([toMemberId])
+}
+
+// ───────────────────────────── Audit ─────────────────────────────
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tripId        String?
+  actorUserId   String?
+  actorMemberId String?
+  /// e.g. "trip", "member", "expense", "payment"
+  entityType    String
+  entityId      String
+  /// e.g. "create", "update", "delete", "verify"
+  action        String
+  before        Json?
+  after         Json?
+  createdAt     DateTime @default(now())
+
+  trip        Trip?       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  actorUser   User?       @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorMember TripMember? @relation(fields: [actorMemberId], references: [id], onDelete: SetNull)
+
+  @@index([tripId, createdAt])
+  @@index([entityType, entityId])
+}

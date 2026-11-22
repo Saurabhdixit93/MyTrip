@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 232 64" role="img" aria-label="MyTrip">
+  <defs><linearGradient id="mt-pin" x1="10" y1="3" x2="54" y2="61" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5EEAD4"/><stop offset="1" stop-color="#14B8A6"/></linearGradient></defs>
+  <path fill="url(#mt-pin)" d="M32 3C19.85 3 10 12.85 10 25c0 16.1 19.03 33.9 20.65 35.4a2 2 0 0 0 2.7 0C34.97 58.9 54 41.1 54 25 54 12.85 44.15 3 32 3z"/>
+  <g transform="rotate(-28 32 25)">
+    <path fill="#0F172A" d="M30.4 12.1a12.9 12.9 0 0 0 0 25.8z"/>
+    <path fill="#FBBF24" d="M33.6 12.1a12.9 12.9 0 0 1 0 25.8z"/>
+  </g>
+  <text x="66" y="44" font-family="'Bricolage Grotesque', 'Geist', Inter, system-ui, sans-serif" font-size="36" font-weight="800" letter-spacing="-1"><tspan fill="#F8FAFC">My</tspan><tspan fill="#5EEAD4">Trip</tspan></text>
+</svg>
