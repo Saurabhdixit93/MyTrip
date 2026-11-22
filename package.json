@@ -21,7 +21,6 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.3",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "@t3-oss/env-nextjs": "^0.13.11",
@@ -47,6 +46,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@serwist/turbopack": "^9.5.15",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",

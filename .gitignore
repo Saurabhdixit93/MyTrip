@@ -51,3 +51,4 @@ next-env.d.ts
 /playwright-report/
 
 !.env.example
+.explore*.mjs
