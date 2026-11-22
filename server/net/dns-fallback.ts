@@ -18,7 +18,19 @@ export function installDnsFallback(servers: string[]) {
   const resolver = new dns.promises.Resolver({ timeout: 3000, tries: 2 });
   resolver.setServers(servers);
 
+  // Hosts the system resolver failed on: skip it (and its timeout) for a while and reuse answers.
+  const TTL_MS = 5 * 60_000;
+  const cache = new Map<string, { list: LookupAddress[]; expires: number }>();
+
   async function resolvePublic(hostname: string, family: number | undefined): Promise<LookupAddress[]> {
+    const hit = cache.get(hostname);
+    if (hit && hit.expires > Date.now()) return hit.list;
+    const list = await resolveFresh(hostname, family);
+    if (list.length) cache.set(hostname, { list, expires: Date.now() + TTL_MS });
+    return list;
+  }
+
+  async function resolveFresh(hostname: string, family: number | undefined): Promise<LookupAddress[]> {
     const v4 = family === 6 ? [] : await resolver.resolve4(hostname).catch(() => []);
     const v6 = family === 4 || v4.length ? [] : await resolver.resolve6(hostname).catch(() => []);
     return [...v4.map((address) => ({ address, family: 4 })), ...v6.map((address) => ({ address, family: 6 }))];
@@ -28,6 +40,14 @@ export function installDnsFallback(servers: string[]) {
     const callback = typeof options === "function" ? options : maybeCallback;
     if (!callback) return;
     const opts: dns.LookupOptions = typeof options === "number" ? { family: options } : typeof options === "object" ? { ...options } : {};
+    const respond = (list: LookupAddress[], err: NodeJS.ErrnoException) => {
+      const first = list[0];
+      if (!first) return callback(err, "", 0);
+      return opts.all ? callback(null, list) : callback(null, first.address, first.family);
+    };
+    const cached = cache.get(hostname);
+    if (cached && cached.expires > Date.now()) return respond(cached.list, new Error("unreachable"));
+
     original(hostname, { ...opts, all: true }, (err, addresses) => {
       if (!err) {
         if (opts.all) return callback(null, addresses);
@@ -36,11 +56,7 @@ export function installDnsFallback(servers: string[]) {
       }
       if (!err.code || !RETRYABLE.has(err.code)) return callback(err, "", 0);
       const family = typeof opts.family === "number" ? opts.family : undefined;
-      void resolvePublic(hostname, family).then((list) => {
-        const first = list[0];
-        if (!first) return callback(err, "", 0);
-        return opts.all ? callback(null, list) : callback(null, first.address, first.family);
-      });
+      void resolvePublic(hostname, family).then((list) => respond(list, err));
     });
   }
 

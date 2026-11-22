@@ -10,7 +10,7 @@ test.describe("trip cover image", () => {
     await page.goto(tripPath);
     const cover = page.getByTestId("trip-cover-image").first();
     await expect(cover).toHaveAttribute("src", /^\/api\/files\/trips\/.+\/cover\/.+\.png$/);
-    await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(512);
+    await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), { timeout: 30_000 }).toBe(512);
 
     // Change it via settings using a different link.
     await page.goto(`${tripPath}/settings`);
@@ -19,7 +19,7 @@ test.describe("trip cover image", () => {
     await page.getByRole("button", { name: "Save" }).first().click();
     await expect(page.getByText("Trip saved")).toBeVisible();
     await page.goto(tripPath);
-    await expect.poll(() => page.getByTestId("trip-cover-image").first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(192);
+    await expect.poll(() => page.getByTestId("trip-cover-image").first().evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 30_000 }).toBe(192);
   });
 
   test("a link that isn't an image shows a clear error", async ({ page, baseURL }) => {
