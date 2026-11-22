@@ -8,7 +8,14 @@ import { db } from "../db";
 import { AppError } from "../errors";
 import { requireTripAccess } from "../rbac";
 import { storage } from "../storage";
+import { fetchRemoteImage } from "../storage/remote-image";
 import { storeTripImage } from "../storage/uploads";
+
+/** An uploaded file wins; otherwise a pasted image URL is downloaded and stored like an upload. */
+async function resolveCover(file: File | null, coverUrl: string | undefined): Promise<File | null> {
+  if (file) return file;
+  return coverUrl ? fetchRemoteImage(coverUrl) : null;
+}
 
 async function uniqueInviteCode(): Promise<string> {
   for (let i = 0; i < 8; i++) {
@@ -31,7 +38,9 @@ function tripFields(input: TripInput) {
   };
 }
 
-export async function createTrip(user: CurrentUser, input: TripInput, cover: File | null) {
+export async function createTrip(user: CurrentUser, input: TripInput, coverFile: File | null) {
+  // Fetch/validate the cover before creating anything, so a bad link doesn't leave a half-made trip.
+  const cover = await resolveCover(coverFile, input.coverUrl);
   const inviteCode = await uniqueInviteCode();
   const trip = await db.$transaction(async (tx) => {
     const created = await tx.trip.create({
@@ -44,14 +53,21 @@ export async function createTrip(user: CurrentUser, input: TripInput, cover: Fil
     return created;
   });
   if (cover) {
-    const { key } = await storeTripImage(trip.id, "cover", cover);
-    await db.trip.update({ where: { id: trip.id }, data: { coverKey: key } });
+    try {
+      const { key } = await storeTripImage(trip.id, "cover", cover);
+      await db.trip.update({ where: { id: trip.id }, data: { coverKey: key } });
+    } catch (err) {
+      // Not a valid image: drop the half-created trip so the user can retry cleanly.
+      await db.$transaction([db.auditLog.deleteMany({ where: { tripId: trip.id } }), db.tripMember.deleteMany({ where: { tripId: trip.id } }), db.trip.delete({ where: { id: trip.id } })]);
+      throw err;
+    }
   }
   return trip;
 }
 
-export async function updateTrip(user: CurrentUser, tripId: string, input: TripInput, cover: File | null) {
+export async function updateTrip(user: CurrentUser, tripId: string, input: TripInput, coverFile: File | null) {
   const { trip, member } = await requireTripAccess(user.id, tripId, "trip.update");
+  const cover = await resolveCover(coverFile, input.coverUrl);
   const next = tripFields(input);
   let coverKey = trip.coverKey;
   if (cover) coverKey = (await storeTripImage(trip.id, "cover", cover)).key;

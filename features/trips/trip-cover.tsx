@@ -16,13 +16,13 @@ function pick(seed: string) {
 }
 
 /** Trip cover photo (private, served via /api/files) or a deterministic brand gradient. */
-export function TripCover({ tripId, coverUrl, className, children }: { tripId: string; coverUrl: string | null; className?: string; children?: React.ReactNode }) {
+export function TripCover({ tripId, coverUrl, className, children, eager }: { tripId: string; coverUrl: string | null; className?: string; children?: React.ReactNode; eager?: boolean }) {
   return (
     <div className={cn("relative overflow-hidden bg-gradient-to-br", pick(tripId), className)}>
       {coverUrl ? (
         // Private images can't go through the next/image optimizer (it has no session cookie).
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={coverUrl} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" decoding="async" />
+        <img src={coverUrl} alt="" className="absolute inset-0 size-full object-cover" loading={eager ? "eager" : "lazy"} decoding="async" data-testid="trip-cover-image" />
       ) : null}
       {children}
     </div>

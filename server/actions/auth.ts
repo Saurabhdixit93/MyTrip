@@ -34,7 +34,7 @@ export async function signInWithEmailAction(_prev: unknown, form: FormData): Pro
   });
   if (!result.ok) return result;
   await prepareUpgrade();
-  await signIn("resend", { email: result.data.email.toLowerCase(), redirectTo: result.data.callbackUrl });
+  await signIn("nodemailer", { email: result.data.email.toLowerCase(), redirectTo: result.data.callbackUrl });
   return { ok: true, data: undefined };
 }
 

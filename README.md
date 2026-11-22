@@ -38,8 +38,25 @@ pnpm dev
 ```
 
 Set `AUTH_DEV_LOGIN="true"` locally to get a one-click **Demo login** on `/login`. Seeded accounts:
-`coach@mytrip.dev` (Coach), `rahul@mytrip.dev`, `priya@mytrip.dev`. Without `AUTH_RESEND_KEY`, magic links
-are printed to the server console.
+`coach@mytrip.dev` (Coach), `rahul@mytrip.dev`, `priya@mytrip.dev`.
+
+**Email (magic links)** go out over SMTP with Nodemailer (`SMTP_HOST/PORT/USER/PASSWORD`, `EMAIL_FROM`).
+For Gmail use `smtp.gmail.com:465` with an App password. Without `SMTP_HOST` in dev, links are printed to the console.
+
+**Storage**: `STORAGE_DRIVER="s3"` + `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`,
+`S3_BUCKET` for any S3-compatible store (Neon storage, AWS, R2, MinIO; path-style). `"local"` writes to `./.data/uploads`.
+
+## End-to-end tests
+
+```bash
+pnpm exec playwright install chromium   # once
+pnpm e2e
+```
+
+Playwright reads `.env`: it starts its own server on `E2E_PORT` (default 3100) and swaps in
+`E2E_DATABASE_URL` / `E2E_STORAGE_DRIVER` so test users and trips never touch your real database.
+Run `DATABASE_URL=$E2E_DATABASE_URL pnpm db:deploy` once to migrate the test database.
+Suites: cover image from a pasted link, create trip → expense → balances, UPI pay → Coach verifies.
 
 ## Scripts
 
@@ -48,6 +65,7 @@ pnpm dev          # dev server
 pnpm lint         # eslint
 pnpm typecheck    # next typegen + tsc
 pnpm test         # vitest (split, settlement, money, UPI, RBAC)
+pnpm e2e          # playwright (see "End-to-end tests")
 pnpm build        # production build (also bundles the service worker)
 pnpm db:migrate   # prisma migrate dev
 pnpm db:deploy    # prisma migrate deploy (production)
@@ -90,6 +108,6 @@ append-only audit log, private file storage with magic-byte checks served only t
 ## Deploy (Vercel)
 
 1. Create a Postgres database (Neon / Supabase) and set `DATABASE_URL`.
-2. Set `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, Google OAuth and/or `AUTH_RESEND_KEY`, and S3-compatible storage
-   (`STORAGE_DRIVER=s3`, `S3_*`). Keep `AUTH_DEV_LOGIN` off.
+2. Set `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, Google OAuth and/or SMTP (`SMTP_*`, `EMAIL_FROM`), and S3-compatible
+   storage (`STORAGE_DRIVER=s3`, `AWS_*`, `S3_BUCKET`). Keep `AUTH_DEV_LOGIN` and `IMAGE_IMPORT_ALLOW_PRIVATE` off.
 3. Build command: `pnpm db:deploy && pnpm build`.

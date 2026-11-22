@@ -34,3 +34,8 @@ export function createTranslator(locale: Locale = defaultLocale) {
 
 /** Default-locale translator. Locale switching (Hindi) is wired in the i18n phase. */
 export const t = createTranslator(defaultLocale);
+
+/** "1 member" / "5 members". */
+export function membersLabel(count: number) {
+  return count === 1 ? t("trips.member") : t("trips.members", { count });
+}

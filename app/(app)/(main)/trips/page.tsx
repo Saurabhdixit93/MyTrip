@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TripCover } from "@/features/trips/trip-cover";
 import { formatShortDate } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { membersLabel, t } from "@/lib/i18n";
 import { requireUser } from "@/server/auth/session";
 import { listMyTrips } from "@/server/queries/trips";
 import { fileUrl } from "@/server/storage/uploads";
@@ -89,7 +89,7 @@ export default async function TripsPage({ searchParams }: PageProps<"/trips">) {
                       </span>
                     ) : null}
                     <span className="flex items-center gap-1.5">
-                      <Users className="size-4" aria-hidden /> {trip._count.members === 1 ? t("trips.member") : t("trips.members", { count: trip._count.members })}
+                      <Users className="size-4" aria-hidden /> {membersLabel(trip._count.members)}
                     </span>
                   </div>
                 </Link>

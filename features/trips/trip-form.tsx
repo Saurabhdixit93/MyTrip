@@ -4,7 +4,6 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { fieldA11y, Field } from "@/components/forms/field";
 import { fieldErrors, FormError } from "@/components/forms/form-error";
-import { ImagePicker } from "@/components/forms/image-picker";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import type { ActionResult } from "@/lib/action-result";
 import { t } from "@/lib/i18n";
+import { CoverPicker } from "./cover-picker";
 
 export interface TripFormValues {
   tripId?: string;
@@ -41,7 +41,7 @@ export function TripForm({ action, defaults, submitLabel }: { action: TripAction
       {defaults?.tripId ? <input type="hidden" name="tripId" value={defaults.tripId} /> : null}
       <input type="hidden" name="removeCover" value={removeCover ? "true" : "false"} />
 
-      <ImagePicker name="cover" label={t("trips.cover")} initialUrl={defaults?.coverUrl} onClear={() => setRemoveCover(true)} />
+      <CoverPicker initialUrl={defaults?.coverUrl} errors={errors.coverUrl} onRemove={() => setRemoveCover(true)} />
 
       <Field id="name" label={t("trips.name")} errors={errors.name}>
         <Input {...fieldA11y("name", errors.name)} defaultValue={defaults?.name} required maxLength={80} placeholder={t("trips.namePlaceholder")} className="h-11" />

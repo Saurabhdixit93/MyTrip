@@ -47,15 +47,18 @@ function safeLocalPath(key: string) {
   return file;
 }
 
-/** S3-compatible driver (AWS S3, Cloudflare R2, Supabase Storage S3, MinIO) signed with SigV4. */
+/**
+ * S3-compatible driver (AWS S3, Neon storage, Cloudflare R2, Supabase, MinIO), SigV4-signed,
+ * path-style URLs (<endpoint>/<bucket>/<key>), i.e. the SDK's `forcePathStyle: true`.
+ */
 function s3Driver(): StorageDriver {
   const client = new AwsClient({
-    accessKeyId: env.S3_ACCESS_KEY_ID ?? "",
-    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? "",
-    region: env.S3_REGION,
+    accessKeyId: env.AWS_ACCESS_KEY_ID ?? "",
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY ?? "",
+    region: env.AWS_REGION,
     service: "s3",
   });
-  const url = (key: string) => `${env.S3_ENDPOINT?.replace(/\/$/, "")}/${env.S3_BUCKET}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  const url = (key: string) => `${env.AWS_ENDPOINT_URL_S3?.replace(/\/$/, "")}/${env.S3_BUCKET}/${key.split("/").map(encodeURIComponent).join("/")}`;
   return {
     async put(key, body, contentType) {
       const res = await client.fetch(url(key), { method: "PUT", body: new Blob([new Uint8Array(body)]), headers: { "Content-Type": contentType } });

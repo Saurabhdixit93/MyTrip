@@ -4,7 +4,10 @@
  */
 import "dotenv/config";
 import { computeSplit, type SplitInput } from "../lib/domain/split";
+import { dnsFallbackFromEnv } from "../server/net/dns-fallback";
 import { createPrismaClient } from "./client";
+
+dnsFallbackFromEnv(process.env.DNS_FALLBACK_SERVERS);
 
 const DEMO_CODE = "GOAFUN";
 const DEMO_TOKEN = "demo-goa-getaway-invite-token-2026";

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InvitePanel } from "@/features/invites/invite-panel";
 import { AddMemberForm, MemberActions, MyProfileForm } from "@/features/members/member-forms";
-import { t } from "@/lib/i18n";
+import { membersLabel, t } from "@/lib/i18n";
 import { can } from "@/lib/rbac";
 import { absoluteUrl, siteConfig } from "@/lib/site";
 import { requireTripPage } from "@/server/queries/trips";
@@ -36,7 +36,7 @@ export default async function MembersPage({ params, searchParams }: PageProps<"/
 
         <section aria-labelledby="members-heading" className="space-y-3">
           <h2 id="members-heading" className="text-lg font-bold">
-            {t("trips.members", { count: members.length })}
+            {membersLabel(members.length)}
           </h2>
           <ul className="bg-card divide-y rounded-3xl border">
             {members.map((m) => (

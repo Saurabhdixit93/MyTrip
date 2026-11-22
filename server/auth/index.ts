@@ -2,12 +2,12 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import Resend from "next-auth/providers/resend";
+import Nodemailer from "next-auth/providers/nodemailer";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { db } from "@/server/db";
 import { authAdapter } from "./adapter";
-import { sendMagicLink } from "./email";
+import { sendMagicLink, smtpServer } from "./email";
 import { mergeUpgradingGuest } from "./guest-merge";
 import { verifyGuestToken } from "./guest-token";
 
@@ -19,7 +19,7 @@ declare module "next-auth" {
 
 export const authFeatures = {
   google: Boolean(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET),
-  email: Boolean(env.AUTH_RESEND_KEY) || env.NODE_ENV !== "production",
+  email: Boolean(env.SMTP_HOST) || env.NODE_ENV !== "production",
   devLogin: env.AUTH_DEV_LOGIN,
 };
 
@@ -52,9 +52,10 @@ if (authFeatures.google) {
 
 if (authFeatures.email) {
   providers.push(
-    Resend({
-      apiKey: env.AUTH_RESEND_KEY ?? "console",
+    Nodemailer({
+      server: smtpServer,
       from: env.EMAIL_FROM,
+      maxAge: 24 * 60 * 60,
       sendVerificationRequest: ({ identifier, url }) => sendMagicLink({ identifier, url }),
     }),
   );

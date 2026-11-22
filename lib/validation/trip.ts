@@ -13,6 +13,13 @@ export const tripInputSchema = z
     budget: optionalRupeesInput,
     settlementMode: z.enum(settlementModes).default("PAY_COACH"),
     removeCover: checkbox,
+    coverUrl: z
+      .string()
+      .trim()
+      .max(2048)
+      .optional()
+      .transform((v) => (v ? v : undefined))
+      .pipe(z.url({ protocol: /^https?$/, message: "Paste a full image link starting with https://" }).optional()),
   })
   .refine((v) => !v.startDate || !v.endDate || v.endDate >= v.startDate, {
     message: "End date can't be before the start date",

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { JoinTripForm } from "@/features/invites/join-forms";
 import { formatShortDate } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { membersLabel, t } from "@/lib/i18n";
 import { getCurrentUser } from "@/server/auth/session";
 import { getInvitePreview } from "@/server/services/invites";
 
@@ -47,7 +47,7 @@ export default async function JoinTokenPage({ params }: PageProps<"/join/[token]
               </li>
             ) : null}
             <li className="flex items-center gap-2">
-              <Users className="size-4" aria-hidden /> {t("trips.members", { count: preview.memberCount })}
+              <Users className="size-4" aria-hidden /> {membersLabel(preview.memberCount)}
               {preview.coachName ? ` · ${t("join.coach", { name: preview.coachName })}` : null}
             </li>
           </ul>

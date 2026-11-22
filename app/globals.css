@@ -63,7 +63,7 @@
 :root {
   --radius: 0.875rem;
   --space-page: 1rem;
-  --bottom-nav-height: 4rem;
+  --bottom-nav-height: 4.5rem;
 
   --background: oklch(0.985 0.004 185);
   --foreground: oklch(0.21 0.025 250);

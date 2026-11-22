@@ -80,7 +80,7 @@ export function InstallPrompt() {
       <div
         role="dialog"
         aria-labelledby="install-title"
-        className="glass fixed inset-x-3 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+0.75rem)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl p-3 shadow-lg animate-in slide-in-from-bottom-4 fade-in md:bottom-6"
+        className="glass fixed inset-x-3 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+3rem)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-2xl p-3 shadow-lg animate-in slide-in-from-bottom-4 fade-in md:bottom-6"
       >
         <LogoMark className="size-10 shrink-0" title="" />
         <div className="min-w-0 flex-1">

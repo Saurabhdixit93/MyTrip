@@ -15,6 +15,8 @@ const SIGNATURES: { type: string; ext: string; test: (b: Uint8Array) => boolean 
     ext: "webp",
     test: (b) => String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP",
   },
+  { type: "image/gif", ext: "gif", test: (b) => String.fromCharCode(...b.slice(0, 4)) === "GIF8" },
+  { type: "image/avif", ext: "avif", test: (b) => String.fromCharCode(...b.slice(4, 12)) === "ftypavif" },
 ];
 
 /** Validates an uploaded image by its magic bytes (never trusting the client's MIME type) and stores it. */
@@ -23,7 +25,7 @@ export async function storeTripImage(tripId: string, kind: UploadKind, file: Fil
   if (file.size > MAX_UPLOAD_BYTES) throw new AppError("VALIDATION", "Images must be 5 MB or smaller.");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const sig = SIGNATURES.find((s) => s.test(bytes));
-  if (!sig) throw new AppError("VALIDATION", "Only JPG, PNG or WebP images are allowed.");
+  if (!sig) throw new AppError("VALIDATION", "Only JPG, PNG, WebP, GIF or AVIF images are allowed.", { coverUrl: ["That link isn't a JPG, PNG, WebP, GIF or AVIF image."] });
   const key = `trips/${tripId}/${kind}/${Date.now()}-${randomToken(9)}.${sig.ext}`;
   await storage.put(key, bytes, sig.type);
   return { key, contentType: sig.type, size: bytes.byteLength };

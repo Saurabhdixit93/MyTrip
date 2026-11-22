@@ -29,6 +29,7 @@ export async function updateTripAction(_prev: unknown, form: FormData): Promise<
   const schema = tripInputSchema.and(tripIdSchema);
   return runAction(schema, formToObject(form), async (input) => {
     const user = await requireActionUser();
+    if (input.coverUrl) await rateLimit("image.import", user.id, 20, "1 h");
     await updateTrip(user, input.tripId, input, optionalFile(form.get("cover")));
     revalidatePath(`/trips/${input.tripId}`, "layout");
     return undefined;
