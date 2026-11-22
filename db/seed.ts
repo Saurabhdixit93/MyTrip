@@ -20,7 +20,17 @@ async function main() {
   const rahul = await user("rahul@mytrip.dev", "Rahul Verma");
   const priya = await user("priya@mytrip.dev", "Priya Nair");
 
-  await db.trip.deleteMany({ where: { inviteCode: DEMO_CODE } });
+  // Hard-delete the previous demo trip in dependency order (the app itself only soft-deletes).
+  const old = await db.trip.findUnique({ where: { inviteCode: DEMO_CODE }, select: { id: true } });
+  if (old) {
+    await db.$transaction([
+      db.payment.deleteMany({ where: { tripId: old.id } }),
+      db.expense.deleteMany({ where: { tripId: old.id } }),
+      db.auditLog.deleteMany({ where: { tripId: old.id } }),
+      db.tripMember.deleteMany({ where: { tripId: old.id } }),
+      db.trip.delete({ where: { id: old.id } }),
+    ]);
+  }
 
   const trip = await db.trip.create({
     data: {

@@ -48,6 +48,11 @@ describe("buildUpiLink", () => {
 });
 
 describe("sanitizeUpiText", () => {
+  it("removes emoji and symbols but keeps Indic letters", () => {
+    expect(sanitizeUpiText("Goa Getaway 🌴 - Priya", 50)).toBe("Goa Getaway - Priya");
+    expect(sanitizeUpiText("मनाली ट्रिप", 50)).toBe("मनाली ट्रिप");
+  });
+
   it("trims to max length", () => {
     expect(sanitizeUpiText("a".repeat(80), 50)).toHaveLength(50);
   });

@@ -25,10 +25,13 @@ export interface UpiLinkParams {
   note: string;
 }
 
-/** Strips characters UPI apps choke on (control chars, &, =, #) and trims to a max length. */
+/**
+ * Keeps only letters, digits, spaces and basic punctuation (UPI apps reject emoji, &, =, #, % …),
+ * then trims to a max length.
+ */
 export function sanitizeUpiText(text: string, max: number): string {
   return text
-    .replace(/[\u0000-\u001f\u007f&=#?%]/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N} .,\-_/()@']/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max)

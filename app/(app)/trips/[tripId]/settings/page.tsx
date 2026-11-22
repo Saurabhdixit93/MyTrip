@@ -6,6 +6,7 @@ import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteTripDialog, TripStatusControls } from "@/features/trips/trip-admin";
+import { PayoutForm } from "@/features/payments/payout-form";
 import { TripForm } from "@/features/trips/trip-form";
 import { paiseToRupeeString } from "@/lib/domain/money";
 import { toDateInput } from "@/lib/format";
@@ -61,6 +62,18 @@ export default async function TripSettingsPage({ params }: PageProps<"/trips/[tr
             />
           </CardContent>
         </Card>
+
+        {can(me.role, "trip.payout.update") ? (
+          <Card id="payout" className="scroll-mt-20 rounded-3xl">
+            <CardHeader>
+              <CardTitle>{t("payout.title")}</CardTitle>
+              <CardDescription>{t("payout.body")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PayoutForm tripId={trip.id} upiVpa={trip.upiVpa} upiPayeeName={trip.upiPayeeName} qrUrl={fileUrl(trip.upiQrKey)} />
+            </CardContent>
+          </Card>
+        ) : null}
 
         {can(me.role, "trip.lock") ? (
           <Card className="rounded-3xl">
