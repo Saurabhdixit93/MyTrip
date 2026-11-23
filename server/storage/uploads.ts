@@ -19,6 +19,12 @@ const SIGNATURES: { type: string; ext: string; test: (b: Uint8Array) => boolean 
   { type: "image/avif", ext: "avif", test: (b) => String.fromCharCode(...b.slice(4, 12)) === "ftypavif" },
 ];
 
+/** Detects the real image type from magic bytes (never trust a declared MIME type). */
+export function sniffImage(bytes: Uint8Array): { type: string; ext: string } | null {
+  const sig = SIGNATURES.find((s) => s.test(bytes));
+  return sig ? { type: sig.type, ext: sig.ext } : null;
+}
+
 /** Validates an uploaded image by its magic bytes (never trusting the client's MIME type) and stores it. */
 export async function storeTripImage(tripId: string, kind: UploadKind, file: File): Promise<{ key: string; contentType: string; size: number }> {
   if (file.size === 0) throw new AppError("VALIDATION", "The file is empty.");

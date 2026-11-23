@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/turbopack/worker";
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
+import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
 declare global {
@@ -14,13 +14,28 @@ declare const self: ServiceWorkerGlobalScope;
 export const SHARE_CACHE = "mytrip-share-target";
 export const SHARED_RECEIPT_URL = "/__shared-receipt";
 
+/**
+ * Only handle same-origin requests. Cross-origin images (Google avatars, pasted links) must load
+ * natively: fetched from the worker they'd be blocked by its CSP (connect-src 'self').
+ */
+const runtimeCaching: RuntimeCaching[] = defaultCache.map((entry) => ({
+  ...entry,
+  matcher: (opts) => {
+    if (!opts.sameOrigin) return false;
+    const m = entry.matcher;
+    if (typeof m === "function") return m(opts);
+    if (m instanceof RegExp) return m.test(opts.url.href);
+    return opts.url.pathname === m;
+  },
+}));
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   // Wait for the user to accept the "New version" toast before activating.
   skipWaiting: false,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching,
   fallbacks: {
     entries: [
       {

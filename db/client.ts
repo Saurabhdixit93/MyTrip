@@ -20,7 +20,13 @@ export function withStrictSsl(connectionString: string): string {
 }
 
 export function createPrismaClient(connectionString: string) {
-  const adapter = new PrismaPg({ connectionString: withStrictSsl(connectionString) });
+  const adapter = new PrismaPg({
+    connectionString: withStrictSsl(connectionString),
+    // Poolers (Neon, Prisma dev) close idle connections server-side; drop ours first so a request
+    // never picks up a dead socket ("ConnectionClosed").
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 15_000,
+  });
   return new PrismaClient({ adapter, log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"] });
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, PlusSquare, Share, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISS_KEY = "mytrip:install-dismissed-at";
+/** Only on browse-style pages, never over forms or sheets where it could cover a submit button. */
+const PROMPT_PATHS = new Set(["/", "/trips"]);
 const DISMISS_DAYS = 14;
 
 function recentlyDismissed() {
@@ -38,6 +41,7 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
   const [iosSheetOpen, setIosSheetOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isStandalone() || recentlyDismissed()) return;
@@ -73,7 +77,7 @@ export function InstallPrompt() {
     setDeferred(null);
   };
 
-  if (!deferred && !showIosHint) return null;
+  if ((!deferred && !showIosHint) || !PROMPT_PATHS.has(pathname)) return null;
 
   return (
     <>

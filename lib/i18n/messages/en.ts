@@ -162,7 +162,7 @@ export const en = {
     coverLink: "Paste image link",
     coverUrl: "Image link",
     coverUrlPlaceholder: "https://images.unsplash.com/photo-…",
-    coverUrlHint: "Paste a direct link to a JPG, PNG or WebP image. We'll save a copy so it never breaks.",
+    coverUrlHint: "Paste a link to an image (JPG, PNG, WebP, GIF or AVIF). We save an optimised copy, so it never breaks.",
     coverUrlPreviewError: "We can't preview this link. Make sure it opens an image directly, not a web page.",
     coverSource: "Cover photo source",
     settlementMode: "How should people settle?",

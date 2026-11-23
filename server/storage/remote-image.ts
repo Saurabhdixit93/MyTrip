@@ -3,11 +3,15 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { isPrivateAddress } from "@/lib/net/ip";
 import { devFlags } from "@/lib/env";
+import sharp from "sharp";
 import { AppError } from "../errors";
-import { MAX_UPLOAD_BYTES } from "./uploads";
+import { sniffImage } from "./uploads";
 
 const MAX_REDIRECTS = 3;
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 12_000;
+/** Raw download cap for linked images; they are re-encoded far smaller before storing. */
+const MAX_REMOTE_BYTES = 15 * 1024 * 1024;
+const MAX_EDGE = 1600;
 
 const fail = (message: string) => new AppError("VALIDATION", message, { coverUrl: [message] });
 
@@ -56,7 +60,7 @@ export async function fetchRemoteImage(rawUrl: string): Promise<File> {
     }
     if (!res.ok || !res.body) throw fail(`The image link returned an error (${res.status}).`);
     const declared = Number(res.headers.get("content-length") ?? 0);
-    if (declared > MAX_UPLOAD_BYTES) throw fail("That image is bigger than 5 MB.");
+    if (declared > MAX_REMOTE_BYTES) throw fail("That image is bigger than 15 MB.");
 
     const reader = res.body.getReader();
     const chunks: Uint8Array<ArrayBuffer>[] = [];
@@ -65,9 +69,9 @@ export async function fetchRemoteImage(rawUrl: string): Promise<File> {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_UPLOAD_BYTES) {
+      if (size > MAX_REMOTE_BYTES) {
         await reader.cancel();
-        throw fail("That image is bigger than 5 MB.");
+        throw fail("That image is bigger than 15 MB.");
       }
       chunks.push(new Uint8Array(value));
     }
@@ -75,4 +79,24 @@ export async function fetchRemoteImage(rawUrl: string): Promise<File> {
     return new File(chunks, "cover", { type });
   }
   throw fail("That link redirects too many times.");
+}
+
+/**
+ * Downloads a linked image, checks it really is an image, and re-encodes it as a WebP of at most
+ * 1600px (EXIF rotation applied, metadata stripped). Used for both the preview and the saved copy.
+ */
+export async function importRemoteImage(rawUrl: string): Promise<File> {
+  const file = await fetchRemoteImage(rawUrl);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!sniffImage(bytes)) throw fail("That link isn't a JPG, PNG, WebP, GIF or AVIF image. Open the image itself and copy its address.");
+  try {
+    const out = await sharp(bytes, { animated: false, limitInputPixels: 50_000_000 })
+      .rotate()
+      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    return new File([new Uint8Array(out)], "cover.webp", { type: "image/webp" });
+  } catch {
+    throw fail("We couldn't read that image. Try another link or upload the photo.");
+  }
 }

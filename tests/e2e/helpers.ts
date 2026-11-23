@@ -18,7 +18,7 @@ export async function createTrip(page: Page, name: string, opts: { coverUrl?: st
   if (opts.coverUrl) {
     await page.getByTestId("cover-mode-link").click();
     await page.getByTestId("cover-url").fill(opts.coverUrl);
-    await expect(page.getByTestId("cover-url-preview")).toHaveCSS("opacity", "1");
+    await expect(page.getByTestId("cover-url-preview")).toBeVisible({ timeout: 30_000 });
   }
   await page.getByRole("button", { name: "Create trip" }).click();
   await page.waitForURL(/\/trips\/[a-z0-9]+\/members\?welcome=1/);

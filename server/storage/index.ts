@@ -59,19 +59,42 @@ function s3Driver(): StorageDriver {
     service: "s3",
   });
   const url = (key: string) => `${env.AWS_ENDPOINT_URL_S3?.replace(/\/$/, "")}/${env.S3_BUCKET}/${key.split("/").map(encodeURIComponent).join("/")}`;
+
+  /**
+   * Sign, then send with a concrete byte body + explicit Content-Length.
+   * Never pass the signed Request object straight to fetch: in production Next.js re-sends its
+   * stream body with `Transfer-Encoding: chunked`, which S3-compatible stores reject (501).
+   */
+  async function send(method: "GET" | "PUT" | "DELETE", key: string, body?: Uint8Array, contentType?: string) {
+    const headers: Record<string, string> = {};
+    if (body) {
+      headers["Content-Type"] = contentType ?? "application/octet-stream";
+      headers["Content-Length"] = String(body.byteLength);
+    }
+    const signed = await client.sign(url(key), { method, headers, body: body ? new Uint8Array(body) : undefined });
+    return fetch(signed.url, { method, headers: signed.headers, body: body ? new Uint8Array(body) : undefined, cache: "no-store" });
+  }
+
+  async function fail(op: string, res: Response): Promise<never> {
+    const text = await res.text().catch(() => "");
+    const code = /<Code>([^<]+)<\/Code>/.exec(text)?.[1];
+    throw new Error(`S3 ${op} failed: ${res.status}${code ? ` ${code}` : ""}`);
+  }
+
   return {
     async put(key, body, contentType) {
-      const res = await client.fetch(url(key), { method: "PUT", body: new Blob([new Uint8Array(body)]), headers: { "Content-Type": contentType } });
-      if (!res.ok) throw new Error(`S3 PUT failed: ${res.status}`);
+      const res = await send("PUT", key, body, contentType);
+      if (!res.ok) await fail("PUT", res);
     },
     async get(key) {
-      const res = await client.fetch(url(key));
+      const res = await send("GET", key);
       if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`S3 GET failed: ${res.status}`);
+      if (!res.ok) await fail("GET", res);
       return { body: new Uint8Array(await res.arrayBuffer()), contentType: res.headers.get("content-type") ?? "application/octet-stream" };
     },
     async delete(key) {
-      await client.fetch(url(key), { method: "DELETE" });
+      const res = await send("DELETE", key);
+      if (!res.ok && res.status !== 404) await fail("DELETE", res);
     },
   };
 }

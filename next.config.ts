@@ -8,8 +8,8 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  // https: so a pasted cover-image link can be previewed before the server imports a copy.
-  "img-src 'self' data: blob: https:",
+  // Pasted image links are previewed through /api/image-preview (same origin), so no wildcard here.
+  "img-src 'self' data: blob: https://lh3.googleusercontent.com",
   "font-src 'self' data:",
   "connect-src 'self'",
   "worker-src 'self'",

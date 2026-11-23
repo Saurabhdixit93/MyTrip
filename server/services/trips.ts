@@ -8,13 +8,13 @@ import { db } from "../db";
 import { AppError } from "../errors";
 import { requireTripAccess } from "../rbac";
 import { storage } from "../storage";
-import { fetchRemoteImage } from "../storage/remote-image";
+import { importRemoteImage } from "../storage/remote-image";
 import { storeTripImage } from "../storage/uploads";
 
 /** An uploaded file wins; otherwise a pasted image URL is downloaded and stored like an upload. */
 async function resolveCover(file: File | null, coverUrl: string | undefined): Promise<File | null> {
   if (file) return file;
-  return coverUrl ? fetchRemoteImage(coverUrl) : null;
+  return coverUrl ? importRemoteImage(coverUrl) : null;
 }
 
 async function uniqueInviteCode(): Promise<string> {
