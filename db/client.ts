@@ -19,9 +19,11 @@ export function withStrictSsl(connectionString: string): string {
   }
 }
 
-export function createPrismaClient(connectionString: string) {
+export function createPrismaClient(connectionString: string, options: { poolMax?: number } = {}) {
   const adapter = new PrismaPg({
     connectionString: withStrictSsl(connectionString),
+    // Single-connection databases (e.g. the local `prisma dev` server used by e2e) need max: 1.
+    ...(options.poolMax ? { max: options.poolMax } : {}),
     // Poolers (Neon, Prisma dev) close idle connections server-side; drop ours first so a request
     // never picks up a dead socket ("ConnectionClosed").
     idleTimeoutMillis: 10_000,

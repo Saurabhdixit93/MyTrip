@@ -16,7 +16,11 @@ const serverEnv: Record<string, string> = {
   NEXT_PUBLIC_APP_URL: baseURL,
   NEXT_DIST_DIR: ".next-e2e",
 };
-if (process.env.E2E_DATABASE_URL) serverEnv.DATABASE_URL = process.env.E2E_DATABASE_URL;
+if (process.env.E2E_DATABASE_URL) {
+  serverEnv.DATABASE_URL = process.env.E2E_DATABASE_URL;
+  // The local `prisma dev` test database accepts one connection at a time.
+  serverEnv.DATABASE_POOL_MAX = process.env.E2E_DATABASE_POOL_MAX || "1";
+}
 if (process.env.E2E_STORAGE_DRIVER) serverEnv.STORAGE_DRIVER = process.env.E2E_STORAGE_DRIVER;
 
 export default defineConfig({

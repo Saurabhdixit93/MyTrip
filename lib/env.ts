@@ -10,6 +10,8 @@ export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DATABASE_URL: z.url(),
+    /** Optional pg pool size cap. Set 1 for single-connection dev databases (`prisma dev`). */
+    DATABASE_POOL_MAX: z.coerce.number().int().positive().optional(),
     AUTH_SECRET: z.string().min(32),
     AUTH_GOOGLE_ID: z.string().optional(),
     AUTH_GOOGLE_SECRET: z.string().optional(),
