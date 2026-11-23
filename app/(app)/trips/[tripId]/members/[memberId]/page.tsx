@@ -62,8 +62,8 @@ export default async function MemberHisabPage({ params }: PageProps<"/trips/[tri
           {SUMMARY.filter((s) => s.key === "paid" || s.key === "share" || totals[s.key] > 0).map((s) => (
             <div key={s.key} className="bg-card rounded-2xl border p-4">
               <dt className="text-muted-foreground text-xs">{t(`hisab.${s.key}`)}</dt>
-              <dd className={cn("tabular mt-1 text-lg font-bold", s.sign > 0 ? "text-success" : "text-destructive")}>
-                {s.sign > 0 ? "+" : "−"}
+              <dd className={cn("tabular mt-1 text-lg font-bold", totals[s.key] === 0 ? "text-muted-foreground" : s.sign > 0 ? "text-success" : "text-destructive")}>
+                {totals[s.key] === 0 ? "" : s.sign > 0 ? "+" : "−"}
                 {formatPaise(totals[s.key])}
               </dd>
             </div>
