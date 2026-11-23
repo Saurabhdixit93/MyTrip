@@ -11,7 +11,7 @@ import { getMemberStatement } from "@/server/queries/ledger";
 import { requireTripPage } from "@/server/queries/trips";
 import { cn } from "cn";
 
-export const metadata: Metadata = { title: "Hisab" };
+export const metadata: Metadata = { title: "Statement" };
 
 const SUMMARY: { key: "paid" | "share" | "advancesGiven" | "advancesReceived" | "settlementsSent" | "settlementsReceived"; sign: 1 | -1 }[] = [
   { key: "paid", sign: 1 },

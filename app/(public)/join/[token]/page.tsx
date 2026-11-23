@@ -1,9 +1,9 @@
-import { CalendarDays, MapPin, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { JoinTripForm } from "@/features/invites/join-forms";
+import { coverGradient } from "@/features/trips/trip-cover";
+import { TripHeroCard } from "@/features/trips/trip-hero-card";
 import { formatShortDate } from "@/lib/format";
 import { membersLabel, t } from "@/lib/i18n";
 import { getCurrentUser } from "@/server/auth/session";
@@ -30,29 +30,21 @@ export default async function JoinTokenPage({ params }: PageProps<"/join/[token]
 
   return (
     <div className="space-y-6 pt-2">
-      <Card className="bg-primary text-primary-foreground overflow-hidden rounded-3xl border-0">
-        <CardContent className="space-y-3 p-6">
-          <p className="text-sm opacity-85">{t("join.invitedTo")}</p>
-          <h1 className="text-3xl font-extrabold">{preview.name}</h1>
-          <ul className="space-y-1 text-sm opacity-90">
-            {preview.destination ? (
-              <li className="flex items-center gap-2">
-                <MapPin className="size-4" aria-hidden /> {preview.destination}
-              </li>
-            ) : null}
-            {preview.startDate ? (
-              <li className="flex items-center gap-2">
-                <CalendarDays className="size-4" aria-hidden /> {formatShortDate(preview.startDate)}
-                {preview.endDate ? ` – ${formatShortDate(preview.endDate)}` : null}
-              </li>
-            ) : null}
-            <li className="flex items-center gap-2">
-              <Users className="size-4" aria-hidden /> {membersLabel(preview.memberCount)}
-              {preview.coachName ? ` · ${t("join.coach", { name: preview.coachName })}` : null}
-            </li>
-          </ul>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-sm font-medium">{t("join.invitedTo")}</p>
+        <TripHeroCard
+          name={preview.name}
+          coverUrl={preview.hasCover ? `/api/invite-cover/${token}` : null}
+          gradient={coverGradient(preview.id) ?? ""}
+          destination={preview.destination}
+          dateLabel={preview.startDate ? `${formatShortDate(preview.startDate)}${preview.endDate ? ` – ${formatShortDate(preview.endDate)}` : ""}` : null}
+          phaseLabel={preview.coachName ? t("join.coach", { name: preview.coachName }) : null}
+          phaseLive={false}
+          statusLabel={null}
+          members={preview.members}
+          membersLabel={membersLabel(preview.memberCount)}
+        />
+      </div>
 
       <JoinTripForm token={token} placeholders={preview.placeholders} signedInName={user?.name ?? null} />
 

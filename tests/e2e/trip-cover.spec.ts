@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createTrip, devLogin, uniqueEmail } from "./helpers";
+import { createTrip, devLogin, inviteLink, uniqueEmail } from "./helpers";
 
 test.describe("trip cover image", () => {
   test("cover from a pasted image link is imported, stored and shown", async ({ page, baseURL }) => {
@@ -12,6 +12,19 @@ test.describe("trip cover image", () => {
     // Linked images are re-encoded to an optimised WebP before storing.
     await expect(cover).toHaveAttribute("src", /^\/api\/files\/trips\/.+\/cover\/.+\.webp$/);
     await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), { timeout: 30_000 }).toBe(512);
+
+    // Invitees (not members yet, signed out) see the cover on the join screen…
+    const privateSrc = await cover.getAttribute("src");
+    const link = await inviteLink(page, tripPath);
+    const guest = await (await page.context().browser()?.newContext())?.newPage();
+    if (!guest) throw new Error("no browser");
+    await guest.goto(link);
+    const joinCover = guest.getByTestId("trip-cover-image");
+    await expect(joinCover).toHaveAttribute("src", /^\/api\/invite-cover\//);
+    await expect.poll(() => joinCover.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), { timeout: 30_000 }).toBe(512);
+    // …but the trip's private file URLs stay locked for them.
+    expect((await guest.request.get(privateSrc ?? "")).status()).toBe(401);
+    await guest.context().close();
 
     // Change it via settings using a different link.
     await page.goto(`${tripPath}/settings`);

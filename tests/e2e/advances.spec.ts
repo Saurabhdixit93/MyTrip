@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 import { addEqualExpense, createTrip, devLogin, inviteLink, joinAsGuest, uniqueEmail } from "./helpers";
 
 /**
- * Advances flow + hisab maths:
+ * Advances flow + statement maths:
  *   Aman gives the Coach ₹5,000 → Coach pays ₹3,000 dinner split 2 ways (₹1,500 each)
  *   ⇒ Coach owes Aman ₹3,500. Cancelling the advance flips it: Aman owes ₹1,500.
  */
-test("advances: record, approve, cancel, and the hisab stays exact", async ({ page, browser }) => {
+test("advances: record, approve, cancel, and the statement stays exact", async ({ page, browser }) => {
   test.setTimeout(180_000);
   await devLogin(page, uniqueEmail("advcoach"), "Kiran");
   const { tripPath } = await createTrip(page, "Ladakh Bikers");
@@ -33,8 +33,8 @@ test("advances: record, approve, cancel, and the hisab stays exact", async ({ pa
   await expect(page.getByTestId("my-transfers")).toContainText("You pay Aman");
   await expect(page.getByTestId("my-transfers")).toContainText("₹3,500.00");
 
-  // Aman's hisab: +5,000 advance − 1,500 share = gets back 3,500.
-  await page.getByRole("link", { name: "View hisab: Aman" }).click();
+  // Aman's statement: +5,000 advance − 1,500 share = gets back 3,500.
+  await page.getByRole("link", { name: "View statement: Aman" }).click();
   await expect(page.getByTestId("hisab-net")).toContainText("Gets back ₹3,500.00");
   await expect(page.getByTestId("hisab-entries")).toContainText("Advance to You");
   await expect(page.getByTestId("hisab-entries")).toContainText("Share of Dinner");

@@ -21,7 +21,8 @@ export async function getInvitePreview(token: string) {
       inviteEnabled: true,
       status: true,
       deletedAt: true,
-      members: { where: { deletedAt: null }, select: { id: true, displayName: true, userId: true, role: true }, orderBy: { createdAt: "asc" } },
+      coverKey: true,
+      members: { where: { deletedAt: null }, select: { id: true, displayName: true, userId: true, role: true, user: { select: { image: true } } }, orderBy: { createdAt: "asc" } },
     },
   });
   if (!trip || trip.deletedAt || !trip.inviteEnabled || trip.status === "ARCHIVED") return null;
@@ -32,6 +33,8 @@ export async function getInvitePreview(token: string) {
     startDate: trip.startDate,
     endDate: trip.endDate,
     memberCount: trip.members.length,
+    hasCover: Boolean(trip.coverKey),
+    members: trip.members.map((m) => ({ id: m.id, name: m.displayName, image: m.user?.image ?? null })),
     coachName: trip.members.find((m) => m.role === "COACH")?.displayName ?? null,
     placeholders: trip.members.filter((m) => !m.userId).map((m) => ({ id: m.id, displayName: m.displayName })),
     memberUserIds: trip.members.flatMap((m) => (m.userId ? [m.userId] : [])),
@@ -86,4 +89,11 @@ export async function joinTrip(
     }
     return { tripId: trip.id, guestToken };
   });
+}
+
+/** Cover photo key for a valid, active invite token (the only file an invitee may see). */
+export async function getInviteCoverKey(token: string): Promise<string | null> {
+  const trip = await db.trip.findUnique({ where: { inviteToken: token }, select: { coverKey: true, inviteEnabled: true, deletedAt: true, status: true } });
+  if (!trip || trip.deletedAt || !trip.inviteEnabled || trip.status === "ARCHIVED") return null;
+  return trip.coverKey;
 }
