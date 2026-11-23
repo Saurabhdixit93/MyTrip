@@ -9,7 +9,8 @@ test.describe("trip cover image", () => {
 
     await page.goto(tripPath);
     const cover = page.getByTestId("trip-cover-image").first();
-    await expect(cover).toHaveAttribute("src", /^\/api\/files\/trips\/.+\/cover\/.+\.png$/);
+    // Linked images are re-encoded to an optimised WebP before storing.
+    await expect(cover).toHaveAttribute("src", /^\/api\/files\/trips\/.+\/cover\/.+\.webp$/);
     await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth), { timeout: 30_000 }).toBe(512);
 
     // Change it via settings using a different link.
