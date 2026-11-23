@@ -1,20 +1,21 @@
 "use client";
 
-import { CheckCircle2, Copy, ExternalLink, ShieldCheck, Wallet } from "lucide-react";
+import { BadgeCheck, CheckCircle2, Copy, Download, ExternalLink, ShieldCheck, Wallet } from "lucide-react";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { fieldA11y, Field } from "@/components/forms/field";
 import { ImagePicker } from "@/components/forms/image-picker";
-import { QrCode } from "@/components/qr-code";
+import { downloadQr, QrCode } from "@/components/qr-code";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { copyText } from "@/lib/client/clipboard";
-import { useIsMobile } from "@/lib/client/device";
+import { useUpiPlatform } from "@/lib/client/platform";
 import { paiseToRupeeString, parseRupeesToPaise } from "@/lib/domain/money";
 import { formatPaise } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { buildUpiLink, isValidVpa } from "@/lib/upi";
+import { buildUpiAppLinks, buildUpiLink, isValidVpa } from "@/lib/upi";
+import { cn } from "cn";
 import { submitPaymentAction } from "@/server/actions/payments";
 
 export interface Payee {
@@ -23,7 +24,12 @@ export interface Payee {
   vpa: string | null;
   payeeName: string;
   staticQrUrl: string | null;
+  /** Coach confirmed the UPI app shows their name for this UPI ID. */
+  verified: boolean;
 }
+
+const APP_LABEL = { gpay: "payments.appGpay", phonepe: "payments.appPhonepe", paytm: "payments.appPaytm" } as const;
+const APP_DOT = { gpay: "bg-[#4285F4]", phonepe: "bg-[#5F259F]", paytm: "bg-[#00BAF2]" } as const;
 
 export function PaySheet({ tripId, tripName, payee, duePaise, payerName }: { tripId: string; tripName: string; payee: Payee; duePaise: number; payerName: string }) {
   const [open, setOpen] = useState(false);
@@ -34,18 +40,18 @@ export function PaySheet({ tripId, tripName, payee, duePaise, payerName }: { tri
   // One key per sheet session: retries and double taps resolve to the same payment.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const formRef = useRef<HTMLFormElement>(null);
-  const isMobile = useIsMobile();
+  const platform = useUpiPlatform();
 
   const amountPaise = parseRupeesToPaise(amount);
   const amountValid = amountPaise !== null && amountPaise > 0 && amountPaise <= duePaise;
   const vpaOk = Boolean(payee.vpa && isValidVpa(payee.vpa));
-  const upiLink = useMemo(
-    () =>
-      vpaOk && amountValid && payee.vpa
-        ? buildUpiLink({ vpa: payee.vpa, payeeName: payee.payeeName, amountPaise: amountPaise ?? 0, note: `${tripName} - ${payerName}` })
-        : null,
+  const upiParams = useMemo(
+    () => (vpaOk && amountValid && payee.vpa ? { vpa: payee.vpa, payeeName: payee.payeeName, amountPaise: amountPaise ?? 0, note: `${tripName} - ${payerName}` } : null),
     [vpaOk, amountValid, payee.vpa, payee.payeeName, amountPaise, tripName, payerName],
   );
+  const upiLink = upiParams ? buildUpiLink(upiParams) : null;
+  // Same params, per installed-app deep link (Android intents / iOS app schemes).
+  const appLinks = upiParams ? buildUpiAppLinks(upiParams, platform) : [];
 
   const baseForm = (stage: "intent" | "paid") => {
     const fd = stage === "paid" && formRef.current ? new FormData(formRef.current) : new FormData();
@@ -102,20 +108,46 @@ export function PaySheet({ tripId, tripName, payee, duePaise, payerName }: { tri
           {step === "pay" ? (
             vpaOk && upiLink ? (
               <div className="space-y-4">
-                {isMobile ? (
-                  <Button asChild size="lg" className="h-14 w-full rounded-2xl text-base">
-                    <a href={upiLink} onClick={recordIntent} data-testid="upi-pay-now">
-                      <ExternalLink /> {t("payments.payNow")}
-                    </a>
-                  </Button>
+                {payee.verified ? (
+                  <p className="text-success flex items-center gap-1.5 text-xs font-semibold" data-testid="payee-verified">
+                    <BadgeCheck className="size-4" aria-hidden /> {t("payments.payeeVerified", { name: payee.name })}
+                  </p>
                 ) : null}
-                <details open={!isMobile} className="group rounded-2xl border p-4">
-                  <summary className="cursor-pointer list-none text-sm font-semibold">{t("payments.scanQr")}</summary>
-                  <div className="mx-auto mt-3 max-w-56 space-y-2 text-center">
-                    <QrCode value={upiLink} label={t("payments.qrAmount", { amount: formatPaise(amountPaise ?? 0) })} />
-                    <p className="text-muted-foreground text-xs">{t("payments.qrAmount", { amount: formatPaise(amountPaise ?? 0) })}</p>
+
+                {appLinks.length ? (
+                  <div className="space-y-2" data-testid="upi-app-links">
+                    <p className="text-sm font-medium">{t("payments.payWith")}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {appLinks.map((l) => (
+                        <Button
+                          key={l.app}
+                          asChild
+                          size="lg"
+                          variant={l.app === "any" ? "default" : "outline"}
+                          className={cn("h-12 rounded-2xl px-2 text-xs sm:text-sm", l.app === "any" && "col-span-3 h-14 text-base")}
+                        >
+                          <a href={l.href} onClick={recordIntent} data-testid={l.app === "any" ? "upi-pay-now" : `upi-app-${l.app}`}>
+                            {l.app === "any" ? <ExternalLink /> : <span className={cn("size-2.5 rounded-full", APP_DOT[l.app])} aria-hidden />}
+                            {l.app === "any" ? t("payments.payNow") : t(APP_LABEL[l.app])}
+                          </a>
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </details>
+                ) : null}
+
+                <div className="space-y-2 rounded-2xl border p-4 text-center" data-testid="upi-qr">
+                  <p className="text-sm font-semibold">{t("payments.scanQr")}</p>
+                  <div className="mx-auto max-w-56">
+                    <QrCode value={upiLink} label={t("payments.qrAmount", { amount: formatPaise(amountPaise ?? 0) })} className="ring-1 ring-black/5" />
+                  </div>
+                  <p className="text-muted-foreground text-xs">{t("payments.qrAmount", { amount: formatPaise(amountPaise ?? 0) })}</p>
+                  <Button variant="ghost" size="sm" onClick={() => void downloadQr(upiLink, `mytrip-pay-${payee.name.replace(/\W+/g, "-").toLowerCase()}.png`)} data-testid="save-upi-qr">
+                    <Download /> {t("payments.saveQr")}
+                  </Button>
+                  {appLinks.length ? <p className="text-muted-foreground text-xs">{t("payments.saveQrHint")}</p> : null}
+                </div>
+
                 <div className="bg-muted flex items-center gap-2 rounded-xl px-3 py-2 text-sm">
                   <span className="text-muted-foreground">{t("payments.upiId")}:</span>
                   <code className="flex-1 truncate font-semibold" data-testid="payee-vpa">

@@ -5,6 +5,7 @@ import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { ToastOnMount } from "@/components/toast-on-mount";
 import { Button } from "@/components/ui/button";
 import { ExpenseListItem } from "@/features/expenses/expense-list-item";
+import { ExpenseTabs } from "@/features/expenses/expense-tabs";
 import { formatDate, formatPaise } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { can } from "@/lib/rbac";
@@ -46,6 +47,7 @@ export default async function ExpensesPage({ params, searchParams }: PageProps<"
         }
       />
       <PageBody>
+        <ExpenseTabs tripId={trip.id} active="expenses" />
         {trip.status !== "ACTIVE" ? <p className="bg-warning/20 rounded-xl px-4 py-3 text-sm font-medium">{t("expenses.lockedNote")}</p> : null}
         {rows.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed px-6 py-14 text-center">

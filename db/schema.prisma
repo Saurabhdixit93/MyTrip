@@ -110,6 +110,10 @@ model Trip {
   upiVpa         String?
   upiPayeeName   String?
   upiQrKey       String?
+  /// UPI ID decoded from the uploaded QR (must match upiVpa).
+  upiQrVpa       String?
+  /// Set when the Coach confirmed their UPI app shows their own name for upiVpa.
+  upiVerifiedAt  DateTime?
   createdById    String
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -256,6 +260,13 @@ enum PaymentStatus {
   REJECTED
 }
 
+/// SETTLEMENT = paying off dues; ADVANCE = money given up front (e.g. to the Coach's kitty).
+/// Both are plain transfers in the ledger: net = paid − share + sent − received.
+enum PaymentKind {
+  SETTLEMENT
+  ADVANCE
+}
+
 enum PaymentMethod {
   UPI
   CASH
@@ -268,6 +279,9 @@ model Payment {
   fromMemberId       String
   toMemberId         String
   amountPaise        Int
+  kind               PaymentKind   @default(SETTLEMENT)
+  /// Date the money changed hands (set explicitly for advances).
+  paidOn             DateTime?     @db.Date
   method             PaymentMethod @default(UPI)
   status             PaymentStatus @default(PENDING)
   /// UPI transaction reference (12-digit UTR), optional.
@@ -289,6 +303,7 @@ model Payment {
   reviewedBy TripMember? @relation("PaymentReviewer", fields: [reviewedByMemberId], references: [id])
 
   @@index([tripId, status])
+  @@index([tripId, kind])
   @@index([fromMemberId])
   @@index([toMemberId])
 }

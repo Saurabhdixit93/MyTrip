@@ -1,7 +1,7 @@
 "use client";
 
 import { ImagePlus, Loader2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/client/compress-image";
 import { cn } from "cn";
@@ -18,6 +18,7 @@ export function ImagePicker({
   className,
   aspect = "aspect-[16/9]",
   initialFile,
+  onFile,
 }: {
   name: string;
   label: string;
@@ -26,13 +27,17 @@ export function ImagePicker({
   className?: string;
   aspect?: string;
   initialFile?: File | null;
+  /** Called with the file the form will submit (after compression). */
+  onFile?: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(initialUrl ?? null);
   const [busy, setBusy] = useState(false);
 
+  // Effect event: reads the latest handler without re-running when callbacks change identity.
+  const loadInitial = useEffectEvent((file: File) => void handleFile(file));
   useEffect(() => {
-    if (initialFile && inputRef.current) void handleFile(initialFile);
+    if (initialFile && inputRef.current) loadInitial(initialFile);
   }, [initialFile]);
 
   async function handleFile(file: File) {
@@ -43,6 +48,7 @@ export function ImagePicker({
     if (inputRef.current) inputRef.current.files = dt.files;
     setPreview(URL.createObjectURL(compressed));
     setBusy(false);
+    onFile?.(compressed);
   }
 
   function clear() {

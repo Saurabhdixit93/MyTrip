@@ -70,7 +70,7 @@ export default async function TripSettingsPage({ params }: PageProps<"/trips/[tr
               <CardDescription>{t("payout.body")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <PayoutForm tripId={trip.id} upiVpa={trip.upiVpa} upiPayeeName={trip.upiPayeeName} qrUrl={fileUrl(trip.upiQrKey)} />
+              <PayoutForm tripId={trip.id} upiVpa={trip.upiVpa} upiPayeeName={trip.upiPayeeName} qrUrl={fileUrl(trip.upiQrKey)} verifiedAt={trip.upiVerifiedAt?.toISOString() ?? null} />
             </CardContent>
           </Card>
         ) : null}

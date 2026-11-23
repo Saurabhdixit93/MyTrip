@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { MemberAvatar } from "@/components/member-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -42,13 +43,13 @@ export default async function MembersPage({ params, searchParams }: PageProps<"/
             {members.map((m) => (
               <li key={m.id} className="flex items-center gap-3 px-4 py-3">
                 <MemberAvatar id={m.id} name={m.displayName} image={m.user?.image} />
-                <div className="min-w-0 flex-1">
+                <Link href={`/trips/${trip.id}/members/${m.id}`} className="min-w-0 flex-1 rounded-lg" aria-label={`${t("hisab.view")}: ${m.displayName}`}>
                   <p className="truncate font-medium">
                     {m.displayName}
                     {m.id === me.id ? <span className="text-muted-foreground"> ({t("members.you")})</span> : null}
                   </p>
-                  <p className="text-muted-foreground truncate text-xs">{m.userId ? (m.upiVpa ?? "") : t("members.placeholder")}</p>
-                </div>
+                  <p className="text-muted-foreground truncate text-xs">{m.userId ? (m.upiVpa ?? t("hisab.view")) : t("members.placeholder")}</p>
+                </Link>
                 {m.role !== "MEMBER" ? <Badge variant={m.role === "COACH" ? "default" : "secondary"}>{t(`roles.${m.role}`)}</Badge> : null}
                 {m.id !== me.id ? (
                   <MemberActions

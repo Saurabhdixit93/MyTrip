@@ -91,6 +91,14 @@ async function main() {
     });
   }
 
+  // Advances: Priya handed the Coach ₹5,000 before the trip; Dev's ₹2,000 is still awaiting approval.
+  await db.payment.create({
+    data: { tripId: trip.id, kind: "ADVANCE", fromMemberId: mPriya.id, toMemberId: mRiya.id, amountPaise: 5000_00, method: "UPI", status: "VERIFIED", paidOn: new Date("2026-12-10T00:00:00Z"), note: "Advance for the villa", idempotencyKey: `seed-${trip.id}-adv-1`, submittedAt: new Date(), reviewedAt: new Date(), reviewedByMemberId: mRiya.id },
+  });
+  await db.payment.create({
+    data: { tripId: trip.id, kind: "ADVANCE", fromMemberId: mDev.id, toMemberId: mRiya.id, amountPaise: 2000_00, method: "CASH", status: "PAID_AWAITING_APPROVAL", paidOn: new Date("2026-12-19T00:00:00Z"), idempotencyKey: `seed-${trip.id}-adv-2`, submittedAt: new Date() },
+  });
+
   // A verified partial payment and one awaiting the Coach's approval.
   await db.payment.create({
     data: { tripId: trip.id, fromMemberId: mRahul.id, toMemberId: mRiya.id, amountPaise: 1000_00, status: "VERIFIED", utr: "412345678901", idempotencyKey: `seed-${trip.id}-1`, submittedAt: new Date(), reviewedAt: new Date(), reviewedByMemberId: mRiya.id },

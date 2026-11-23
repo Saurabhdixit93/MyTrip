@@ -43,6 +43,7 @@ export default async function PaymentsPage({ params }: PageProps<"/trips/[tripId
       </div>
       <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <Badge variant={STATUS_VARIANT[p.status]}>{t(`payments.status.${p.status}`)}</Badge>
+        {p.kind === "ADVANCE" ? <Badge variant="outline">{t("payments.kindADVANCE")}</Badge> : null}
         <span>{t(`payments.method${p.method}`)}</span>
         {p.utr ? <span className="tabular">UTR {p.utr}</span> : null}
         <time dateTime={(p.submittedAt ?? p.createdAt).toISOString()}>{formatDateTime(p.submittedAt ?? p.createdAt)}</time>

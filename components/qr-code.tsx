@@ -37,7 +37,18 @@ export function QrCode({ value, label, className, branded = false }: { value: st
 /** Rasterises a branded QR to a PNG download (for printing or sharing in group chats). */
 export async function downloadBrandedQr(value: string, fileName: string, px = 1024) {
   const { brandedQrSvg } = await import("@/lib/qr/branded");
-  const url = URL.createObjectURL(new Blob([brandedQrSvg(value)], { type: "image/svg+xml" }));
+  return downloadSvgAsPng(brandedQrSvg(value), fileName, px);
+}
+
+/** Plain (maximum-compatibility) QR as a PNG, e.g. a UPI payment QR to scan from the gallery. */
+export async function downloadQr(value: string, fileName: string, px = 1024) {
+  const QR = await import("qrcode");
+  const svg = await QR.toString(value, { type: "svg", margin: 2, errorCorrectionLevel: "M", color: { dark: "#0F172A", light: "#FFFFFF" } });
+  return downloadSvgAsPng(svg, fileName, px);
+}
+
+async function downloadSvgAsPng(svg: string, fileName: string, px: number) {
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const img = new Image();
     img.src = url;

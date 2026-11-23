@@ -63,6 +63,7 @@ export function TripStats({ summary, meId, budgetPaise, memberCount }: { summary
     <section className="grid grid-cols-2 gap-3">
       <Stat label={t("dashboard.totalSpend")} value={formatPaise(summary.totalSpendPaise)} />
       <Stat label={t("dashboard.yourSpend")} value={formatPaise(mine?.owed ?? 0)} />
+      {summary.advancesPaise > 0 ? <Stat label={t("dashboard.advances")} value={formatPaise(summary.advancesPaise)} className="col-span-2" /> : null}
       {budgetPaise ? (
         <div className="bg-card col-span-2 space-y-2 rounded-2xl border p-4">
           <div className="flex items-baseline justify-between text-sm">

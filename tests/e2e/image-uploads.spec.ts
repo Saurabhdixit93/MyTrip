@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import path from "node:path";
+import QRCode from "qrcode";
 import { addEqualExpense, devLogin, inviteLink, joinAsGuest, uniqueEmail } from "./helpers";
 
 /**
@@ -22,7 +23,7 @@ async function expectFileServed(page: Page, href: string | null) {
   expect(res.headers()["content-type"]).toMatch(/^image\//);
 }
 
-test("cover, receipt, Coach UPI QR and payment proof uploads are stored and served", async ({ page, browser }) => {
+test("cover, receipt, Coach UPI QR and payment proof uploads are stored and served", async ({ page, browser }, testInfo) => {
   test.setTimeout(180_000);
   await devLogin(page, uniqueEmail("uploads"), "Tara");
 
@@ -37,10 +38,12 @@ test("cover, receipt, Coach UPI QR and payment proof uploads are stored and serv
   await page.goto(tripPath);
   await expectImageLoads(page.getByTestId("trip-cover-image").first());
 
-  // 2. Coach UPI QR upload in payout settings.
+  // 2. Coach UPI QR upload in payout settings (must be a real UPI QR for this UPI ID).
+  const upiQr = testInfo.outputPath("tara-upi-qr.png");
+  await QRCode.toFile(upiQr, "upi://pay?pa=tara.coach@okicici&pn=Tara", { width: 600, margin: 2 });
   await page.goto(`${tripPath}/settings`);
   await page.fill("#upiVpa", "tara.coach@okicici");
-  await page.locator('input[type=file][name="upiQr"]').setInputFiles(NARROW);
+  await page.locator('input[type=file][name="upiQr"]').setInputFiles(upiQr);
   await expect(page.locator('label:has(input[name="upiQr"]) img')).toBeVisible();
   await page.locator("form:has(#upiVpa)").getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Payout details saved")).toBeVisible();

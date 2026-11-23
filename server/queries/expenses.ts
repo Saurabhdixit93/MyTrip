@@ -34,6 +34,8 @@ export interface TripSummary {
   balances: MemberBalance[];
   plan: Transfer[];
   coachMemberId: string | null;
+  /** Verified advances handed over (the kitty), for the dashboard. */
+  advancesPaise: number;
   /** Names for every member that appears in history, including removed ones. */
   names: Record<string, string>;
 }
@@ -44,7 +46,7 @@ export const getTripSummary = cache(async (tripId: string): Promise<TripSummary>
     db.trip.findUniqueOrThrow({ where: { id: tripId }, select: { settlementMode: true } }),
     db.tripMember.findMany({ where: { tripId }, select: { id: true, displayName: true, role: true, deletedAt: true } }),
     db.expense.findMany({ where: { tripId, deletedAt: null }, select: { amountPaise: true, payers: { select: { memberId: true, amountPaise: true } }, splits: { select: { memberId: true, amountPaise: true } } } }),
-    db.payment.findMany({ where: { tripId, status: "VERIFIED" }, select: { fromMemberId: true, toMemberId: true, amountPaise: true } }),
+    db.payment.findMany({ where: { tripId, status: "VERIFIED" }, select: { fromMemberId: true, toMemberId: true, amountPaise: true, kind: true } }),
   ]);
   const active = members.filter((m) => !m.deletedAt);
   const balances = computeBalances(
@@ -57,6 +59,7 @@ export const getTripSummary = cache(async (tripId: string): Promise<TripSummary>
   return {
     totalSpendPaise: expenses.reduce((s, e) => s + e.amountPaise, 0),
     expenseCount: expenses.length,
+    advancesPaise: payments.filter((p) => p.kind === "ADVANCE").reduce((s, p) => s + p.amountPaise, 0),
     balances,
     plan,
     coachMemberId,

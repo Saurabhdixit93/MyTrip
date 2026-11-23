@@ -154,7 +154,8 @@ export default async function SettlePage({ params }: PageProps<"/trips/[tripId]/
           </h2>
           <ul className="bg-card divide-y rounded-3xl border">
             {balances.map((b) => (
-              <li key={b.memberId} className="flex items-center gap-3 px-4 py-3">
+              <li key={b.memberId}>
+                <Link href={`/trips/${tripId}/members/${b.memberId}`} className="hover:bg-muted/60 flex items-center gap-3 px-4 py-3" aria-label={`${t("hisab.view")}: ${summary.names[b.memberId] ?? ""}`}>
                 <MemberAvatar id={b.memberId} name={summary.names[b.memberId] ?? "?"} className="size-8" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{name(b.memberId)}</span>
@@ -163,6 +164,7 @@ export default async function SettlePage({ params }: PageProps<"/trips/[tripId]/
                 <span className={cn("tabular text-sm font-semibold", b.net > 0 ? "text-success" : b.net < 0 ? "text-destructive" : "text-muted-foreground")}>
                   {b.net > 0 ? t("settle.getsBack", { amount: formatPaise(b.net) }) : b.net < 0 ? t("settle.owes", { amount: formatPaise(-b.net) }) : t("settle.settled")}
                 </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -2,6 +2,7 @@ import "server-only";
 import type { PaymentMethod } from "@/db/generated/client";
 import { formatPaise } from "@/lib/format";
 import { can } from "@/lib/rbac";
+import { parseUpiUri } from "@/lib/upi";
 import { audit } from "../audit";
 import type { CurrentUser } from "../auth/session";
 import { db } from "../db";
@@ -10,13 +11,36 @@ import { assertTripWritable, requireTripAccess } from "../rbac";
 import { getTripSummary } from "../queries/expenses";
 import { storage } from "../storage";
 import { storeTripImage } from "../storage/uploads";
+import { decodeQrFromImage } from "../upi/qr-decode";
 
 export async function updatePayout(user: CurrentUser, input: { tripId: string; upiVpa?: string; upiPayeeName?: string; removeQr: boolean }, qr: File | null) {
   const { trip, member } = await requireTripAccess(user.id, input.tripId, "trip.payout.update");
-  let upiQrKey = trip.upiQrKey;
-  if (qr) upiQrKey = (await storeTripImage(trip.id, "upi-qr", qr)).key;
-  else if (input.removeQr) upiQrKey = null;
-  const next = { upiVpa: input.upiVpa ?? null, upiPayeeName: input.upiPayeeName ?? null, upiQrKey };
+  let vpa = input.upiVpa;
+  let payeeName = input.upiPayeeName;
+  let upiQrKey = input.removeQr ? null : trip.upiQrKey;
+  let upiQrVpa = input.removeQr ? null : trip.upiQrVpa;
+
+  if (qr) {
+    // The QR must be a real UPI QR, and it must pay the same UPI ID (catches someone else's QR).
+    const text = await decodeQrFromImage(new Uint8Array(await qr.arrayBuffer()));
+    const qrFail = (message: string) => new AppError("VALIDATION", message, { upiQr: [message] });
+    if (!text) throw qrFail("We couldn't find a QR code in that image. Upload a clear screenshot of your UPI QR.");
+    const parsed = parseUpiUri(text);
+    if (!parsed) throw qrFail("That QR isn't a UPI payment QR. Use the 'Receive money' QR from your UPI app.");
+    if (vpa && parsed.vpa !== vpa) throw qrFail(`This QR pays ${parsed.vpa}, but your UPI ID is ${vpa}. Upload your own QR or fix the UPI ID.`);
+    vpa ??= parsed.vpa;
+    payeeName ??= parsed.payeeName ?? undefined;
+    upiQrKey = (await storeTripImage(trip.id, "upi-qr", qr)).key;
+    upiQrVpa = parsed.vpa;
+  }
+  if (!vpa && upiQrKey) throw new AppError("VALIDATION", "Add your UPI ID.", { upiVpa: ["Add your UPI ID"] });
+  if (vpa && upiQrVpa && upiQrVpa !== vpa) {
+    const message = `Your saved QR pays ${upiQrVpa}. Upload a QR for ${vpa} or remove the old one.`;
+    throw new AppError("VALIDATION", message, { upiQr: [message] });
+  }
+
+  const vpaChanged = (vpa ?? null) !== trip.upiVpa;
+  const next = { upiVpa: vpa ?? null, upiPayeeName: payeeName ?? null, upiQrKey, upiQrVpa, ...(vpaChanged && { upiVerifiedAt: null }) };
   await db.$transaction(async (tx) => {
     await tx.trip.update({ where: { id: trip.id }, data: next });
     // Keep the Coach's member profile in sync so P2P mode can use the same UPI ID.
@@ -28,11 +52,25 @@ export async function updatePayout(user: CurrentUser, input: { tripId: string; u
       entityType: "trip",
       entityId: trip.id,
       action: "update",
-      before: { upiVpa: trip.upiVpa, upiPayeeName: trip.upiPayeeName, upiQr: Boolean(trip.upiQrKey) },
-      after: { upiVpa: next.upiVpa, upiPayeeName: next.upiPayeeName, upiQr: Boolean(upiQrKey) },
+      before: { upiVpa: trip.upiVpa, upiPayeeName: trip.upiPayeeName, upiQr: trip.upiQrVpa },
+      after: { upiVpa: next.upiVpa, upiPayeeName: next.upiPayeeName, upiQr: upiQrVpa },
     });
   });
   if (trip.upiQrKey && trip.upiQrKey !== upiQrKey) await storage.delete(trip.upiQrKey).catch(() => undefined);
+  return { upiVpa: next.upiVpa, upiPayeeName: next.upiPayeeName };
+}
+
+/**
+ * The Coach confirms that a UPI app showed THEIR name for the saved UPI ID (after scanning the
+ * ₹1 test QR). Free alternative to a paid bank "VPA name lookup" API.
+ */
+export async function confirmUpiVerified(user: CurrentUser, tripId: string) {
+  const { trip, member } = await requireTripAccess(user.id, tripId, "trip.payout.update");
+  if (!trip.upiVpa) throw new AppError("VALIDATION", "Save your UPI ID first.");
+  await db.$transaction(async (tx) => {
+    await tx.trip.update({ where: { id: trip.id }, data: { upiVerifiedAt: new Date() } });
+    await audit(tx, { tripId: trip.id, actorUserId: user.id, actorMemberId: member.id, entityType: "trip", entityId: trip.id, action: "verify", after: { upiVpa: trip.upiVpa } });
+  });
 }
 
 /** What `fromId` still has to pay `toId`: planned transfers minus payments already awaiting approval. */

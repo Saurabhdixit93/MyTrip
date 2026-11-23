@@ -1,4 +1,6 @@
+import { HandCoins } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageBody, PageHeader } from "@/components/layout/page-header";
 import { ExpenseForm } from "@/features/expenses/expense-form";
@@ -24,6 +26,10 @@ export default async function NewExpensePage({ params, searchParams }: PageProps
         {trip.status !== "ACTIVE" ? (
           <p className="bg-warning/20 rounded-xl px-4 py-3 text-sm font-medium">{t("expenses.lockedNote")}</p>
         ) : (
+          <>
+          <Link href={`/trips/${tripId}/expenses/advances?new=1`} className="bg-secondary text-secondary-foreground flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold" data-testid="record-advance-instead">
+            <HandCoins className="size-4" aria-hidden /> {t("advances.recordInstead")}
+          </Link>
           <ExpenseForm
             action={createExpenseAction}
             tripId={trip.id}
@@ -33,6 +39,7 @@ export default async function NewExpensePage({ params, searchParams }: PageProps
             maxReceipts={MAX_RECEIPTS}
             loadSharedReceipt={sp.shared === "receipt"}
           />
+          </>
         )}
       </PageBody>
     </>

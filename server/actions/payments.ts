@@ -2,19 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { cuid } from "@/lib/validation/common";
 import type { ActionResult } from "@/lib/action-result";
 import { paymentRefSchema, paymentReviewSchema, paymentSubmitSchema, payoutSchema, recordReceivedSchema } from "@/lib/validation/payment";
 import { formToObject, runAction } from "../action";
 import { requireActionUser } from "../auth/session";
 import { rateLimit } from "../rate-limit";
 import { optionalFile } from "../storage/uploads";
-import { cancelPayment, recordReceivedPayment, reviewPayment, submitPayment, updatePayout } from "../services/payments";
+import { cancelPayment, confirmUpiVerified, recordReceivedPayment, reviewPayment, submitPayment, updatePayout } from "../services/payments";
 
-export async function updatePayoutAction(_prev: unknown, form: FormData): Promise<ActionResult<undefined>> {
+export async function updatePayoutAction(_prev: unknown, form: FormData): Promise<ActionResult<{ upiVpa: string | null; upiPayeeName: string | null }>> {
   return runAction(payoutSchema, formToObject(form), async (input) => {
     const user = await requireActionUser();
-    await updatePayout(user, input, optionalFile(form.get("upiQr")));
+    const saved = await updatePayout(user, input, optionalFile(form.get("upiQr")));
     revalidatePath(`/trips/${input.tripId}`, "layout");
+    return saved;
+  });
+}
+
+export async function confirmUpiVerifiedAction(input: { tripId: string }) {
+  return runAction(z.object({ tripId: cuid }), input, async ({ tripId }) => {
+    const user = await requireActionUser();
+    await confirmUpiVerified(user, tripId);
+    revalidatePath(`/trips/${tripId}`, "layout");
     return undefined;
   });
 }

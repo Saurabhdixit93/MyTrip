@@ -10,7 +10,7 @@ import { getAuditLog, requireTripPage } from "@/server/queries/trips";
 
 export const metadata: Metadata = { title: "Activity log" };
 
-const ACTIONS = ["create", "update", "delete", "restore", "join", "claim", "lock", "unlock", "role", "submit", "verify", "reject", "cancel"] as const;
+const ACTIONS = ["create", "update", "delete", "restore", "join", "claim", "lock", "unlock", "role", "submit", "verify", "reject", "cancel", "advance", "void"] as const;
 const ENTITIES = ["trip", "member", "expense", "payment", "user"] as const;
 
 function verb(action: string): string {

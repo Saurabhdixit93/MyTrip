@@ -3,7 +3,7 @@ import type { Prisma } from "@/db/generated/client";
 import type { Tx } from "./db";
 
 export type AuditEntity = "trip" | "member" | "expense" | "payment" | "user";
-export type AuditAction = "create" | "update" | "delete" | "restore" | "join" | "claim" | "lock" | "unlock" | "role" | "invite.regenerate" | "submit" | "verify" | "reject" | "cancel";
+export type AuditAction = "create" | "update" | "delete" | "restore" | "join" | "claim" | "lock" | "unlock" | "role" | "invite.regenerate" | "submit" | "verify" | "reject" | "cancel" | "advance" | "void";
 
 /** JSON-safe snapshot (Dates → ISO strings, undefined dropped). */
 function snapshot(value: unknown): Prisma.InputJsonValue | undefined {
